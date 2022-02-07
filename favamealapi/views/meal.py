@@ -17,8 +17,8 @@ class MealSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Meal
-        fields = ('id', 'name', 'restaurant', 'favorites')
-        #   'user_rating', 'avg_rating'
+        fields = ('id', 'name', 'restaurant', 'favorites', 'avg_rating',
+                  'user_rating', 'favorite') 
 
 
 class MealView(ViewSet):
@@ -51,12 +51,14 @@ class MealView(ViewSet):
         """
         try:
             meal = Meal.objects.get(pk=pk)
-
+            user = User.objects.get(pk=request.auth.user.id)
             # TODO: Get the rating for current user and assign to `user_rating` property
-
-            # TODO: Get the average rating for requested meal and assign to `avg_rating` property
+            meal.user_rating = user.id
 
             # TODO: Assign a value to the `is_favorite` property of requested meal
+            meal.user_rating = user in meal.favorites.all()
+            
+            meal.favorite = user in meal.favorites.all()
 
 
             serializer = MealSerializer(
@@ -72,12 +74,13 @@ class MealView(ViewSet):
             Response -- JSON serialized list of meals
         """
         meals = Meal.objects.all()
-
+        user = User.objects.get(pk=request.auth.user.id)
         # TODO: Get the rating for current user and assign to `user_rating` property
-
-        # TODO: Get the average rating for each meal and assign to `avg_rating` property
-
         # TODO: Assign a value to the `is_favorite` property of each meal
+        for meal in meals:
+            meal.favorite = user in meal.favorites.all()
+            meal.user_rating = user.id
+
 
         serializer = MealSerializer(
             meals, many=True, context={'request': request})
@@ -89,7 +92,32 @@ class MealView(ViewSet):
     #       {
     #           "rating": 3
     #       }
+    @action(methods=['post'], detail=True)
+    def rate(self, request, pk):
+        meal = Meal.objects.get(pk=pk)
+        user = User.objects.get(pk=request.auth.user.id)
+        meal_rating = MealRating.objects.get(meal=meal, user=user)
+        
+        if meal_rating is None:
+            MealRating.create(
+                user=user,
+                meal=meal,
+                rating=request.data['rating']
+            )
+            return Response({'message': 'Meal rating added'}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'message': 'Meal rating already exists for user'}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=['put'], detail=True)
+    def rerate(self, request, pk):        
+        meal = Meal.objects.get(pk=pk)
+        user = User.objects.get(pk=request.auth.user.id)
+        
+        meal_rating = MealRating.objects.get(meal=meal, user=user)
+        meal_rating.rating = request.data['rating']
+        meal_rating.save()
+
+        return Response({'message': 'Meal rating updated'}, status=status.HTTP_204_NO_CONTENT)
 
 
 
