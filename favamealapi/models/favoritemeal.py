@@ -4,6 +4,6 @@ from django.db import models
 
 class FavoriteMeal(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="userfavoritemeals")
+        User, on_delete=models.CASCADE, related_name="favoritemeals")
     meal = models.ForeignKey(
-        "Meal", on_delete=models.CASCADE, related_name="userfavoritemeals")
+        "Meal", on_delete=models.CASCADE, related_name="favoritemeals")

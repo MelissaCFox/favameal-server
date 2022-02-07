@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework import serializers
 from favamealapi.models import Meal, MealRating, Restaurant, FavoriteMeal
 from favamealapi.views.restaurant import RestaurantSerializer
+from django.contrib.auth.models import User
 
 
 class MealSerializer(serializers.ModelSerializer):
@@ -16,7 +17,8 @@ class MealSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Meal
-        fields = ('id', 'name', 'restaurant', 'user_rating', 'avg_rating')
+        fields = ('id', 'name', 'restaurant', 'favorites')
+        #   'user_rating', 'avg_rating'
 
 
 class MealView(ViewSet):
@@ -57,7 +59,7 @@ class MealView(ViewSet):
             # TODO: Assign a value to the `is_favorite` property of requested meal
 
 
-            serializer = RestaurantSerializer(
+            serializer = MealSerializer(
                 meal, context={'request': request})
             return Response(serializer.data)
         except Exception as ex:
@@ -93,3 +95,17 @@ class MealView(ViewSet):
 
     # TODO: Add a custom action named `star` that will allow a client to send a
     #  POST and a DELETE request to /meals/3/star.
+    @action(methods=['post'], detail=True)
+    def star(self, request, pk):
+        meal = Meal.objects.get(pk=pk)
+        user = User.objects.get(pk=request.auth.user.id)
+        meal.favorites.add(user)
+        return Response({'message': 'Meal favorite added'}, status=status.HTTP_201_CREATED)
+
+    @action(methods=['delete'], detail=True)
+    def unstar(self, request, pk):
+        meal = Meal.objects.get(pk=pk)
+        user = User.objects.get(pk=request.auth.user.id)
+        meal.favorites.remove(user)
+        return Response({'message': 'Meal favorite deleted'}, status=status.HTTP_204_NO_CONTENT)
+
