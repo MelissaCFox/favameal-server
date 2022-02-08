@@ -19,11 +19,12 @@ class Meal(models.Model):
     @user_rating.setter
     def user_rating(self, user_id):
         user = User.objects.get(pk=user_id)
-        rating = MealRating.objects.get(user=user, meal=self)
-        if rating is None:
-            self.__user_rating = 0
-        else:
-            self.__user_rating = rating.rating
+        try:
+            rating = MealRating.objects.get(user=user, meal=self)
+            if rating:
+                self.__user_rating = rating.rating
+        except:
+            self.__user_rating = "Not rated"
 
 
     # TODO: Add an avg_rating custom properties

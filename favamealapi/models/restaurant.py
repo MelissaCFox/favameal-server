@@ -10,10 +10,10 @@ class Restaurant(models.Model):
 
     # TODO: Add a `favorite` custom property
     
-    # @property
-    # def favorite(self):
-    #     return self.__favorite
+    @property
+    def favorite(self):
+        return self.__favorite
 
-    # @favorite.setter
-    # def favorite(self, value):
-    #     self.__favorite = value
+    @favorite.setter
+    def favorite(self, value):
+        self.__favorite = value

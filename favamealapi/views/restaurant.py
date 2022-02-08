@@ -15,7 +15,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Restaurant
-        fields = ('id', 'name', 'address', 'favorites')
+        fields = ('id', 'name', 'address', 'favorites', 'favorite')
 
 
 class FaveSerializer(serializers.ModelSerializer):
@@ -23,7 +23,7 @@ class FaveSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FavoriteRestaurant
-        fields = ('restaurant')
+        fields = ('restaurant', 'user')
         depth = 1
 
 
@@ -58,6 +58,8 @@ class RestaurantView(ViewSet):
             restaurant = Restaurant.objects.get(pk=pk)
 
             # TODO: Add the correct value to the `favorite` property of the requested restaurant
+            user = User.objects.get(pk=request.auth.user.id)
+            restaurant.favorite = user in restaurant.favorites.all()
 
             serializer = RestaurantSerializer(
                 restaurant, context={'request': request})
@@ -74,7 +76,9 @@ class RestaurantView(ViewSet):
         restaurants = Restaurant.objects.all()
 
         # TODO: Add the correct value to the `favorite` property of each restaurant
-
+        user = User.objects.get(pk=request.auth.user.id)
+        for restaurant in restaurants:
+            restaurant.favorite = user in restaurant.favorites.all()
 
         serializer = RestaurantSerializer(restaurants, many=True, context={'request': request})
 
@@ -83,16 +87,15 @@ class RestaurantView(ViewSet):
     # TODO: Write a custom action named `star` that will allow a client to
     # send a POST and a DELETE request to /restaurant/2/star
 
-    @action(methods=['post'], detail=True)
+    @action(methods=['post', 'delete'], detail=True)
     def star(self, request, pk):
         restaurant = Restaurant.objects.get(pk=pk)
         user = User.objects.get(pk=request.auth.user.id)
-        restaurant.favorites.add(user)
-        return Response({'message': 'Restaurant favorite added'}, status=status.HTTP_201_CREATED)
-
-    @action(methods=['delete'], detail=True)
-    def unstar(self, request, pk):
-        restaurant = Restaurant.objects.get(pk=pk)
-        user = User.objects.get(pk=request.auth.user.id)
-        restaurant.favorites.remove(user)
-        return Response({'message': 'Restaurant favorite deleted'}, status=status.HTTP_204_NO_CONTENT)
+        if request.method == 'POST':
+            restaurant.favorites.add(user)
+            return Response({'message': 'Restaurant favorite added'}, status=status.HTTP_201_CREATED)
+        elif request.method == 'DELETE':
+            restaurant.favorites.remove(user)
+            return Response({'message': 'Restaurant favorite deleted'}, status=status.HTTP_204_NO_CONTENT)
+        else:
+             return Response({'message': 'Method not allowed'}, status=status.HTTP_400_BAD_REQUEST)
